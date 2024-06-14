@@ -1,47 +1,51 @@
-<script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
-import TheWelcome from './components/TheWelcome.vue'
-</script>
-
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="./assets/logo.svg" width="125" height="125" />
-
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
-    </div>
-  </header>
-
-  <main>
-    <TheWelcome />
-  </main>
+  <div
+    v-for="(item, index) in list"
+    :key="index"
+    :style="{ width: '100%', height: '500px', backgroundColor: item.background }"
+  >
+    {{ index }}
+  </div>
+  <div v-if="isLoading">Loading...</div>
 </template>
 
-<style scoped>
-header {
-  line-height: 1.5;
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+
+const isLoading = ref(true)
+const list = ref([])
+const isFetching = ref(false) // to ensure getList only gets called ONCE in handleScroll
+
+const getList = (num: number): Promise<{ background: string }[]> => {
+  isFetching.value = true
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const list = Array.from({ length: num }, () => ({ background: 'rgb(233,32,38)' }))
+      resolve(list)
+      isFetching.value = false
+    }, 5000)
+  })
 }
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
-
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
+const handleScroll = () => {
+  const scrolled = document.documentElement.scrollTop || document.body.scrollTop
+  const threshold =
+    (document.documentElement.scrollHeight - document.documentElement.clientHeight) / 2
+  if (scrolled > threshold && list.value.length <= 40 && !isFetching.value) {
+    getList(10).then((el) => {
+      list.value.push(...el)
+      if (list.value.length >= 50) {
+        window.removeEventListener('scroll', handleScroll)
+      }
+    })
   }
 }
-</style>
+
+onMounted(() => {
+  getList(10).then((el) => {
+    list.value = el
+    isLoading.value = false
+  })
+  window.addEventListener('scroll', handleScroll)
+})
+</script>
